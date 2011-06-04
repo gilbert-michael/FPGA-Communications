@@ -7,24 +7,29 @@ class RegisterEditor():
     '''
     def __init__(self,roach):
         '''takes the name of the register as an argument'''
-        self.reg=reg_name
-	self.roach=roach
-    def target_reg(self, register)
-        self.reg_name=register
+  	self.roach=roach
+    def target_reg(self, register):
+        self.reg=register
     def set_reg(self, value): #, offset=0): #note: Big Endian
         self.roach.write_int(self.reg_name, value)
     def get_reg(self):#, size, offset=0):
-        print 'Signed:', self.roach.read_int('status_signed'),\
-               '\nUnsigned:', self.roach.read_uint('status_unsigned')
-    def get_target_reg(self)
-        return self.reg_name
+        print 'Signed:', self.roach.read_int(self.get_target_reg()),\
+            '\nUnsigned:', self.roach.read_uint(self.get_target_reg())
+    def get_target_reg(self):
+        return self.reg
+    def get_roach_name(self):
+        return self.roach
+    def list_registers(self):
+        c=self.roach
+        print c.listdev()
 
-def RegSetter():
+"""def RegSetter():
     ''' 
     Takes manual input to set registers
     '''
-    regedit=RegisterEditor(corr.katcp_wrapper.FpgaClient('roach',7147)
-    registers=regedit.roach.listdev()
+    regedit=RegisterEditor(corr.katcp_wrapper.FpgaClient('roach',7147))
+    temp=corr.katcp_wrapper.FpgaClient('roach',7147)#regedit.get_roach_name()
+    registers=temp.listdev()
     print 'Available registers'
     i=0
     for reg in registers:
@@ -35,9 +40,9 @@ def RegSetter():
         try:
             j=input('Register number: ')
             if j == 'q':
-                return pass
+                return
             else:
-                regedit.target_reg(registers[j]])
+                regedit.target_reg(registers[j])
         except(IndexError):
             print 'Index out of range, try again'
             continue
@@ -51,7 +56,7 @@ def RegSetter():
         try:
             value=input('New Value for register' + registers[j] + '(x to undo, q to quit): ')
             if value == 'x': break
-            elif value == 'q': return pass
+            elif value == 'q': return
             regedit.set_reg(value)
         except(TypeError):
             print 'Please use proper data format'
@@ -63,3 +68,4 @@ def RegSetter():
             break
     RegSetter()
 RegSetter()
+"""

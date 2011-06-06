@@ -30,7 +30,7 @@ class BramEditor(RegisterEditor):
         def write(self, value):
             valstring = bin(value)[2:]
             packed = ''
-            while len valstring>64:
+            while len(valstring)>64:
                 packed += struct.pack['>L',valstring[:64]
                 valstring = valstring[64:]
             packed += struct.pack['>L',valstring[:64]

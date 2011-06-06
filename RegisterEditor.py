@@ -8,7 +8,7 @@ class RegisterEditor():
     '''
     def __init__(self,roach):
         '''takes the name of the register as an argument'''
-  	self.roach=roach
+        self.roach=roach
     def target(self, register):
         self.reg=register
     def write(self, value): #, offset=0): #note: Big Endian
@@ -30,10 +30,10 @@ class BramEditor(RegisterEditor):
         def write(self, value):
             valstring = bin(value)[2:]
             packed = ''
-            while len(valstring)>64:
-                packed += struct.pack['>L',valstring[:64]
+            while len(valstring) > 64:
+                packed += struct.pack('>L',valstring[:64])
                 valstring = valstring[64:]
-            packed += struct.pack['>L',valstring[:64]
+            packed += struct.pack('>L',valstring[:64])
             self.roach.write(self.reg, packed)
         def read(self):
             pass

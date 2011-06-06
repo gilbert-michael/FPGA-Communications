@@ -1,4 +1,5 @@
 import corr
+import struct
 
 class RegisterEditor():
     '''
@@ -8,14 +9,14 @@ class RegisterEditor():
     def __init__(self,roach):
         '''takes the name of the register as an argument'''
   	self.roach=roach
-    def target_reg(self, register):
+    def target(self, register):
         self.reg=register
-    def set_reg(self, value): #, offset=0): #note: Big Endian
-        self.roach.write_int(self.reg_name, value)
-    def get_reg(self):#, size, offset=0):
-        print 'Signed:', self.roach.read_int(self.get_target_reg()),\
-            '\nUnsigned:', self.roach.read_uint(self.get_target_reg())
-    def get_target_reg(self):
+    def write(self, value): #, offset=0): #note: Big Endian
+        self.roach.write_int(self.reg, value)
+    def read(self):#, size, offset=0):
+        print 'Signed:', self.roach.read_int(self.get_target()),\
+            '\nUnsigned:', self.roach.read_uint(self.get_target())
+    def get_target(self):
         return self.reg
     def get_roach_name(self):
         return self.roach
@@ -23,6 +24,19 @@ class RegisterEditor():
         c=self.roach
         print c.listdev()
 
+class BramEditor(RegisterEditor):
+        def __init__(self, roach):
+            RegisterEditor.__init__(self,roach)
+        def write(self, value):
+            valstring = bin(value)[2:]
+            packed = ''
+            while len valstring>64:
+                packed += struct.pack['>L',valstring[:64]
+                valstring = valstring[64:]
+            packed += struct.pack['>L',valstring[:64]
+            self.roach.write(self.reg, packed)
+        def read(self):
+            pass
 """def RegSetter():
     ''' 
     Takes manual input to set registers
@@ -56,7 +70,7 @@ class RegisterEditor():
         try:
             value=input('New Value for register' + registers[j] + '(x to undo, q to quit): ')
             if value == 'x': break
-            elif value == 'q': return
+            elif value == 'q': r/eturn
             regedit.set_reg(value)
         except(TypeError):
             print 'Please use proper data format'

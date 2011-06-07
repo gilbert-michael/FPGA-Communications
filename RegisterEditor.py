@@ -27,29 +27,30 @@ class RegisterEditor():
         print c.listdev()
 
 class BramEditor(RegisterEditor):
+    '''
+    A class for opening and editing block RAM on a roach
+    '''
         def __init__(self, roach):
             RegisterEditor.__init__(self, roach)
         def write(self, value, target = None, offset = 0):
             '''Writes an integer value to a register.  The target register
             defaults to the target set, and the byte offset defaults to 0'''
             if target == None: target = self.reg
-            valstring = bin(value)[2:]
+            valstring = bin(value)[2:] #converts from int to binary string, removes '0b'
             packed = ''
+            mod = len(valstring) % 32 #finds how many zeroes must be prepended to fit
+            if mod != 0:
+                valstring += '0' * (32 - mod) #prepends zeroes
+            packed += struct.pack('>I', int(valstring[:32], 2))
             while len(valstring) > 32:
                 packed += struct.pack('>I', int(valstring[:32], 2))
                 valstring = valstring[32:]
-            valstring += '0' * (32 - len(valstring))
-            packed += struct.pack('>I', int(valstring[:32], 2))
-            self.roach.write(self.reg, offset, packed)
-        def read(self, target = self.reg, offset = 0):
+            self.roach.write(self.reg, packed, offset)
+        def read(self, target = None, offset = 0):
+            if target == None: target = self.reg
             #TEMPORARY
             output = self.roach.read(target, 4, offset)
             print struct.unpack('>I',output)
-
-if __name__ == '__main__':
-    roach=corr.katcp_wrapper.FpgaClient(roach, '7147')
-    re=RegisterEditor(roach)
-    be=BramEditor(roach)
 
 """def RegSetter():
     ''' 

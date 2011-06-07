@@ -13,9 +13,11 @@ class RegisterEditor():
     def target(self, register):
         '''sets a register to be the default for write and read commands'''
         self.reg=register
-    def write(self, value, target=self.reg): #, offset=0): #note: Big Endian
+    def write(self, value, target = None): #, offset=0): #note: Big Endian
+        if target == None: target = self.reg
         self.roach.write_int(target, value)
-    def read(self, target=self.reg):#, size, offset=0):
+    def read(self, target = None):#, size, offset=0):
+        if target == None: target = self.reg
         print 'Signed:', self.roach.read_int(target),\
             '\nUnsigned:', self.roach.read_uint(target)
     def get_roach_name(self):
@@ -27,9 +29,10 @@ class RegisterEditor():
 class BramEditor(RegisterEditor):
         def __init__(self, roach):
             RegisterEditor.__init__(self, roach)
-        def write(self, value, target = self.reg, offset = 0):
+        def write(self, value, target = None, offset = 0):
             '''Writes an integer value to a register.  The target register
             defaults to the target set, and the byte offset defaults to 0'''
+            if target == None: target = self.reg
             valstring = bin(value)[2:]
             packed = ''
             while len(valstring) > 32:

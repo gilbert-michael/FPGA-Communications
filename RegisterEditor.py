@@ -9,15 +9,15 @@ class RegisterEditor():
     def __init__(self,roach):
         '''takes the name of the register as an argument'''
         self.roach=roach
+        self.reg='sys_scratchpad'
     def target(self, register):
+        '''sets a register to be the default for write and read commands'''
         self.reg=register
-    def write(self, value): #, offset=0): #note: Big Endian
-        self.roach.write_int(self.reg, value)
-    def read(self):#, size, offset=0):
-        print 'Signed:', self.roach.read_int(self.get_target()),\
-            '\nUnsigned:', self.roach.read_uint(self.get_target())
-    def get_target(self):
-        return self.reg
+    def write(self, value, target=self.reg): #, offset=0): #note: Big Endian
+        self.roach.write_int(target, value)
+    def read(self, target=self.reg):#, size, offset=0):
+        print 'Signed:', self.roach.read_int(target),\
+            '\nUnsigned:', self.roach.read_uint(target)
     def get_roach_name(self):
         return self.roach
     def list_registers(self):
@@ -26,17 +26,28 @@ class RegisterEditor():
 
 class BramEditor(RegisterEditor):
         def __init__(self, roach):
-            RegisterEditor.__init__(self,roach)
-        def write(self, value):
+            RegisterEditor.__init__(self, roach)
+        def write(self, value, target = self.reg, offset = 0):
+            '''Writes an integer value to a register.  The target register
+            defaults to the target set, and the byte offset defaults to 0'''
             valstring = bin(value)[2:]
             packed = ''
-            while len(valstring) > 64:
-                packed += struct.pack('>L',valstring[:64])
-                valstring = valstring[64:]
-            packed += struct.pack('>L',valstring[:64])
-            self.roach.write(self.reg, packed)
-        def read(self):
-            pass
+            while len(valstring) > 32:
+                packed += struct.pack('>I', int(valstring[:32], 2))
+                valstring = valstring[32:]
+            valstring += '0' * (32 - len(valstring))
+            packed += struct.pack('>I', int(valstring[:32], 2))
+            self.roach.write(self.reg, offset, packed)
+        def read(self, target = self.reg, offset = 0):
+            #TEMPORARY
+            output = self.roach.read(target, 4, offset)
+            print struct.unpack('>I',output)
+
+if __name__ == '__main__':
+    roach=corr.katcp_wrapper.FpgaClient(roach, '7147')
+    re=RegisterEditor(roach)
+    be=BramEditor(roach)
+
 """def RegSetter():
     ''' 
     Takes manual input to set registers

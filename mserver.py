@@ -6,7 +6,6 @@ class Catcher(multiprocessing.Process):
         self.sock = sock
         self.threadnum = threadnum
         self.bsize = bsize
-        self.then = time.time()
         self.q = queue
         multiprocessing.Process.__init__(self)
     def run(self):
@@ -70,9 +69,12 @@ class Test(object):
             a = i
             if (a - b) != 1:
                 dropcount += a - b - 1
-        print dropcount
-        return([recv_for, len(data), dropcount == 0])
+        return([recv_for, len(data), dropcount])
 
 if __name__ == '__main__':
     g = Test()
-    print g.start(recv_for = 1)
+    a = g.start(recv_for = 1)
+    print 'Listened for', a[0], 'second(s). \n%d bytes received. \
+        \n%d packets.  \n%d dropped.\n%f Gibps\n%f Gbps'\
+        %(a[1],a[1]/7000,a[2],a[1]*8./2**30,a[1]*8./10**9)
+          

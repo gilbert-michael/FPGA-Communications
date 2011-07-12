@@ -1,76 +1,78 @@
-import socket, Queue, threading, multiprocessing, time, struct, cPickle as pickle
-
-class catcher(multiprocessing.Process):
-    '''A generator of udp receiving threads.  Pickles to save output'''
-    def __init__(self, sock, threadnum, queue, r, maxsize = 10**8, bsize = 875*8):
+import socket, Queue, multiprocessing, time, struct
+        
+class Catcher(multiprocessing.Process):
+    '''A generator of udp receiving threads that save output as raw strings'''
+    def __init__(self, sock, threadnum, queue, maxsize = 10**8, bsize = 875*8):
         self.sock = sock
         self.threadnum = threadnum
         self.bsize = bsize
-        self.maxsize = maxsize
         self.then = time.time()
-        rec_size = r
-        q = queue
+        self.q = queue
         multiprocessing.Process.__init__(self)
-        print 'init Thread %d success.' %threadnum
     def run(self):
-        #Grabs packets from the pipe, if one is available
-        print 'Begin run'
-        l = []
-        while rec_size.value < self.maxsize:
-            data, source = self.sock.recvfrom(self.bsize)
-            l.append(data)
-            rec_size.value += self.bsize
-        print 'Receive Success.  Begin write.'
-        with open('data' + str(self.threadnum),'wb') as f:
-            pickle.dump(l,f)
+        global til
+        while time.time() < til:
+            self.q.put(self.sock.recv(self.bsize))
+        print'Receive Success %d' %self.threadnum
         self.sock.close()
-        print time.time()-then, '\n',rec_size.value,'\n'
-        
-class CatchNoPickle(catcher):
-    '''A generator of udp receiving threads that save output as raw strings'''
-    def __init__(self,*args,**kwargs):
-        catcher.__init__(self,*args,**kwargs)
-    def run(self):
-        #Grabs packets from the pipe, if one is available
-        #l = []
-        global rec_size
-        while rec_size < self.maxsize:
-            data, source = self.sock.recvfrom(self.bsize)
-            q.put(data)
-            #l.append(data)
-            rec_size += self.bsize
-        print'Receive Success.  Begin write.'
-        #output = ''.join(l)
-        #with open('data' + str(self.threadnum),'wb') as f:
-            #f.write(output)
-        #q.put(output)
-        self.sock.close()
-        print time.time()-self.then, 'seconds'
-        
+
+class Test(object):
+    ''' Tests the performance of the catcher class.
+        After the class is constructed, start using the start method. '''
+    def __init__(self):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.bind(('192.168.2.1',6000))
+        print 'Socket Initialized\n'
+    def start(self, threads = 6, bsize = 7000, recv_for = 1):
+        '''
+        Starts a given number of processes (default 6), and receives packets
+        with a size given in bytes (default 7000 bytes)
+        for a given amount of time.)
+        '''
+        global til
+        til = time.time() + recv_for
+        q = multiprocessing.Queue()
+        l =[]
+        packet_num = 0
+        for x in range(threads):
+            print 'Start thread %d' %(x+1)
+            Catcher(self.sock, x+1, q).start()
+        while True:
+            try:
+                l.append(q.get(timeout = .5))
+                #packet_num += 1
+            except(Queue.Empty):
+                data = ''.join(l)
+                #with open('dataudp','wb') as f:
+                    #f.write(data)
+                break
+        #print '%d packets worth of data and %d packets written at %f Gbps'\
+        #      %(len(data)/bsize, packet_num, len(data)*8./recv_for/10**9)
+        header_list = []
+        e = 0
+        p = zip(*[iter(data[:bsize])]*4)
+        for i in p: #finds the header in a packet of all zeroes
+            j = ''.join(i)
+            if j != '\x00\x00\x00\x00':
+                break
+            e += 1
+        o = zip(data[4*e::bsize],data[4*e+1::bsize],
+            data[4*e+2::bsize],data[4*e+3::bsize])
+        for i in o: #puts the headers into a list
+            k = struct.unpack('>I',''.join(i))[0]
+            header_list.append(k)
+        print header_list[:10]
+        header_list.sort()
+        dropcount = -(struct.unpack('>I',j)[0])
+        a = 0
+        for i in header_list: #finds gaps in the packet numbers
+            b = a
+            a = i
+            if (a - b) != 1:
+                dropcount += a - b - 1
+        print dropcount
+        return([recv_for, len(data), dropcount == 0])
+
 if __name__ == '__main__':
-    q = multiprocessing.Queue()
-    adj = 0
-    rec_size = 0 #multiprocessing.Value('i',0)
-    l =[]
-    bsize = 7000
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(('192.168.2.1',6000))
-    print 'Socket Initialized\n'
-    for x in range(7):
-        print 'Start thread %d \n' %(x+1)
-        CatchNoPickle(sock, x+1, q, rec_size).start()
-    while True:
-        try:
-            l.append(q.get(timeout = 2))
-        except(Queue.Empty):
-            with open('dataudp','wb') as f:
-                f.write(''.join(l))
-            break
-    print len(''.join(l))/bsize, 'packets written.'
-    a = struct.unpack('>%dI'%(len(''.join(l))/4),''.join(l))
-    p=[]
-    for i in a:
-        if i != 0:
-            p.append(i)
-    print len(p)-len(set(p)), 'duplicates.'
-    print(sorted(p))[-100:]
+    g = Test()
+    print g.start(recv_for = 1)
